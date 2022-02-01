@@ -1,0 +1,6 @@
+*.png
+glide_model_cache/
+glide-text2im/
+.cog/
+.vscode/
+__pycache__/
