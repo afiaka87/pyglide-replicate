@@ -39,14 +39,14 @@ class Predictor(cog.Predictor):
         "side_x",
         type=int,
         default=64,
-        help="Must be multiple of 8. Going above 64 is not recommended. Actual image will be 4x larger. Using 64 enables guidance with released noisy CLIP",
+        help="Must be multiple of 8. Going above 64 is not recommended. Actual image will be 4x larger. ",
         options=[32, 48, 64, 80, 96, 112, 128]
     )
     @cog.input(
         "side_y", 
         type=int,
         default=64,
-        help="Must be multiple of 8. Going above 64 is not recommended. Actual image size will be 4x larger. Using 64 enables guidance with released noisy CLIP",
+        help="Must be multiple of 8. Going above 64 is not recommended. Actual image size will be 4x larger.",
         options=[32, 48, 64, 80, 96, 112, 128]
     )
     @cog.input(
@@ -73,7 +73,7 @@ class Predictor(cog.Predictor):
         type=str,
         default="27",
         help="Number of timesteps to use for base model. Going above 150 has diminishing returns.",
-        options=["5", "10", "15", "20" "25", "27", "fast27", "30", "35", "40", "45" "50", "75" "100", "125" "150"],
+        options=["5", "10", "15", "20", "25", "27", "fast27", "30", "35", "40", "45", "50", "75", "100", "125", "150"],
     )
     @cog.input(
         "seed",
@@ -85,7 +85,7 @@ class Predictor(cog.Predictor):
         "use_noisy_clip",
         type=bool,
         default=False,
-        help="If true, uses the noisy CLIP model. This CLIP is not finetuned and so may not very well.",
+        help="If true, uses the noisy CLIP model. Only works with image size = (64, 64). This CLIP is not finetuned and so may not very well.",
     )
     def predict(
         self,
