@@ -1,0 +1,11 @@
+cog predict \
+    -i prompt='a photo of a womans face' \
+    -i batch_size=6 \
+    -i timestep_respacing=150 \
+    -i sr_timestep_respacing=fast27 \
+    -i guidance_scale=3 \
+    -i side_x=64 \
+    -i side_y=64 \
+    -i upsample_stage=True \
+    -i use_noisy_clip=False \
+    -i upsample_temp='0.998'
