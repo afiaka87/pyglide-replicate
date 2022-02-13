@@ -29,7 +29,6 @@ def load_glide(
         options = model_and_diffusion_defaults()
     else:
         options = model_and_diffusion_defaults_upsampler()
-        timestep_respacing = "fast27"
     
     options["use_fp16"] = True
     options["dropout"] = dropout
@@ -40,7 +39,6 @@ def load_glide(
     glide_model.use_checkpoint = activation_checkpointing
     glide_model.load_state_dict(load_checkpoint(model_name, "cpu"))
     glide_model.eval()
-    # Create CLIP model.
     return glide_model, glide_diffusion, options
 
 
