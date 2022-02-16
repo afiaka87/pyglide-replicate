@@ -47,12 +47,6 @@ class Predictor(cog.Predictor):
         options=[32, 48, 64, 80, 96, 112, 128]
     )
     @cog.input(
-        "upsample_stage",
-        default=False,
-        type=bool,
-        help="If true, uses both the base and upsample models. If false, only the (finetuned) base model is used. This is useful for testing the upsampler, which is not finetuned.",
-    )
-    @cog.input(
         "guidance_scale",
         type=float,
         default=4,
@@ -60,9 +54,9 @@ class Predictor(cog.Predictor):
     )
     @cog.input(
         "upsample_stage",
+        default=False,
         type=bool,
-        default=True,
-        help="Whether to use the upsampling stage of the model. If false, the model will only use the base model.",
+        help="If true, uses both the base and upsample models. If false, only the (finetuned) base model is used. This is useful for testing the upsampler, which is not finetuned.",
     )
     @cog.input(
         "upsample_temp",
@@ -91,24 +85,18 @@ class Predictor(cog.Predictor):
         default=0,
         help="Seed for reproducibility",
     )
-    @cog.input(
-        "use_noisy_clip",
-        type=bool,
-        default=False,
-        help="If true, uses the noisy CLIP model. This CLIP is not finetuned and so may not very well.",
-    )
     def predict(
         self,
         prompt,
         batch_size,
         side_x,
         side_y,
-        guidance_scale,
+        upsample_stage,
         upsample_temp,
+        guidance_scale,
         timestep_respacing,
         sr_timestep_respacing,
         seed,
-        upsample_stage,
     ):
         th.manual_seed(seed)
         # Run this again to change the model parameters
