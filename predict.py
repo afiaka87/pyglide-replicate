@@ -4,7 +4,6 @@ import util
 import pathlib
 
 import sys
-sys.path.append("glide-text2im")
 from glide_text2im.clip.model_creation import create_clip_model
 from glide_text2im.download import load_checkpoint
 
@@ -48,6 +47,12 @@ class Predictor(cog.Predictor):
         options=[32, 48, 64, 80, 96, 112, 128]
     )
     @cog.input(
+        "upsample_stage",
+        default=False,
+        type=bool,
+        help="If true, uses both the base and upsample models. If false, only the (finetuned) base model is used. This is useful for testing the upsampler, which is not finetuned.",
+    )
+    @cog.input(
         "guidance_scale",
         type=float,
         default=4,
@@ -62,7 +67,7 @@ class Predictor(cog.Predictor):
     @cog.input(
         "upsample_temp",
         type=float,
-        default=0.997,
+        default=0.998,
         help="Upsample temperature. Consider lowering to ~0.997 for blurry images with fewer artifacts.",
         options=[0.996, 0.997, 0.998, 0.999, 1.0],
     )
@@ -85,6 +90,12 @@ class Predictor(cog.Predictor):
         type=int,
         default=0,
         help="Seed for reproducibility",
+    )
+    @cog.input(
+        "use_noisy_clip",
+        type=bool,
+        default=False,
+        help="If true, uses the noisy CLIP model. This CLIP is not finetuned and so may not very well.",
     )
     def predict(
         self,
@@ -109,7 +120,8 @@ class Predictor(cog.Predictor):
         )
 
         self.base_model.to("cuda")
-        self.sr_model.to("cuda")
+        if upsample_stage:
+            self.sr_model.to("cuda")
         with th.no_grad():
             base_samples = util.sample(
                 self.base_model,
