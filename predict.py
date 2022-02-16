@@ -18,9 +18,6 @@ class Predictor(cog.Predictor):
         self.sr_model, self.sr_diffusion, self.sr_options = util.load_glide(
             model_name="upsample"
         )
-        self.clip_model = create_clip_model(device="cuda")
-        self.clip_model.image_encoder.load_state_dict(load_checkpoint('clip/image-enc', "cuda"))
-        self.clip_model.text_encoder.load_state_dict(load_checkpoint('clip/text-enc', "cuda"))
 
     @cog.input(
         "prompt",
@@ -31,10 +28,10 @@ class Predictor(cog.Predictor):
     @cog.input(
         "batch_size",
         type=int,
-        default=4,
+        default=1,
         help="Batch size. Number of generations to predict",
         min=1,
-        max=4,
+        max=8,
     )
     @cog.input(
         "side_x",
@@ -57,19 +54,31 @@ class Predictor(cog.Predictor):
         help="Classifier-free guidance scale. Higher values move further away from unconditional outputs. Lower values move closer to unconditional outputs. Negative values guide towards semantically opposite classes. 4-16 is a reasonable range.",
     )
     @cog.input(
+        "upsample_stage",
+        type=bool,
+        default=True,
+        help="Whether to use the upsampling stage of the model. If false, the model will only use the base model.",
+    )
+    @cog.input(
         "upsample_temp",
         type=float,
         default=0.997,
         help="Upsample temperature. Consider lowering to ~0.997 for blurry images with fewer artifacts.",
-        min=0.75,
-        max=1.0,
+        options=[0.996, 0.997, 0.998, 0.999, 1.0],
     )
     @cog.input(
         "timestep_respacing",
         type=str,
-        default="50",
-        help="Number of timesteps to use for base model. Going above 150 has diminishing returns.",
-        options=["25", "50", "100", "150", "250"],
+        default="35",
+        help="Number of timesteps to use for base model PLMS sampling. Usually don't need more than 50.",
+        options=["15", "17", "19", "21", "23", "25", "27", "30", "35", "40", "50", "100"]
+    )
+    @cog.input(
+        "sr_timestep_respacing",
+        type=str,
+        default="17",
+        help="Number of timesteps to use for upsample model PLMS sampling. Usually don't need more than 20.",
+        options=["15", "17", "19", "21", "23", "25", "27"]
     )
     @cog.input(
         "seed",
@@ -86,20 +95,22 @@ class Predictor(cog.Predictor):
         guidance_scale,
         upsample_temp,
         timestep_respacing,
+        sr_timestep_respacing,
         seed,
+        upsample_stage,
     ):
         th.manual_seed(seed)
         # Run this again to change the model parameters
         self.base_model, self.base_diffusion, self.base_options = util.load_glide(
             model_name="base", timestep_respacing=timestep_respacing
         )
+        self.sr_model, self.sr_diffusion, self.sr_options = util.load_glide(
+            model_name="upsample", sr_timestep_respacing=sr_timestep_respacing
+        )
+
         self.base_model.to("cuda")
         self.sr_model.to("cuda")
         with th.no_grad():
-            # Setup guidance function for CLIP model.
-            clip_cond_fn = None
-            if side_x == 64 and side_y == 64:
-                clip_cond_fn = self.clip_model.cond_fn([prompt] * 2 * batch_size, guidance_scale)
             base_samples = util.sample(
                 self.base_model,
                 self.base_diffusion,
@@ -110,24 +121,24 @@ class Predictor(cog.Predictor):
                 batch_size=batch_size,
                 guidance_scale=guidance_scale,
                 device="cuda",
-                clip_cond_fn=clip_cond_fn
             )
             base_pil_images = util.pred_to_pil(base_samples)
             base_pil_images.save("/src/base_predictions.png")
             yield pathlib.Path("/src/base_predictions.png")
 
-            sr_samples = util.sample_sr(
-                self.sr_model,
-                self.sr_diffusion,
-                self.sr_options,
-                samples=base_samples,
-                prompt=prompt,
-                sr_x=int(side_x*4),
-                sr_y=int(side_y*4),
-                upsample_temp=upsample_temp,
-                batch_size=batch_size,
-                device="cuda",
-            )
-            sr_pil_images = util.pred_to_pil(sr_samples)
-            sr_pil_images.save("/src/upsample_predictions.png")
-            yield pathlib.Path("/src/upsample_predictions.png")
+            if upsample_stage:
+                sr_samples = util.sample_sr(
+                    self.sr_model,
+                    self.sr_diffusion,
+                    self.sr_options,
+                    samples=base_samples,
+                    prompt=prompt,
+                    sr_x=int(side_x*4),
+                    sr_y=int(side_y*4),
+                    upsample_temp=upsample_temp,
+                    batch_size=batch_size,
+                    device="cuda",
+                )
+                sr_pil_images = util.pred_to_pil(sr_samples)
+                sr_pil_images.save("/src/upsample_predictions.png")
+                yield pathlib.Path("/src/upsample_predictions.png")

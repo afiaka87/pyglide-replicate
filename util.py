@@ -21,7 +21,8 @@ def pred_to_pil(pred: th.Tensor) -> Image:
 def load_glide(
     model_name: str = "base",
     dropout: float = 0.1,
-    timestep_respacing: str = "100",
+    timestep_respacing: str = "30",
+    sr_timestep_respacing: str = "20",
     activation_checkpointing: bool = False,
 ):
     assert model_name in ["base", "upsample"], f"{model_name} is not a valid model name"
@@ -29,7 +30,7 @@ def load_glide(
         options = model_and_diffusion_defaults()
     else:
         options = model_and_diffusion_defaults_upsampler()
-        timestep_respacing = "fast27"
+        timestep_respacing = sr_timestep_respacing
     
     options["use_fp16"] = True
     options["dropout"] = dropout
@@ -54,7 +55,6 @@ def sample(
     batch_size=1,
     guidance_scale=4,
     device="cpu",
-    clip_cond_fn=None,
 ):
     model.del_cache()
     tokens = model.tokenizer.encode(prompt)
@@ -85,14 +85,14 @@ def sample(
         return th.cat([eps, rest], dim=1)
 
     full_batch_size = batch_size * 2
-    samples = eval_diffusion.p_sample_loop(
+    samples = eval_diffusion.plms_sample_loop(
         model_fn,
         (full_batch_size, 3, side_y, side_x),
         device=device,
         clip_denoised=True,
         progress=True,
         model_kwargs=model_kwargs,
-        cond_fn=clip_cond_fn,
+        cond_fn=None,
     )[:batch_size]
     model.del_cache()
     return samples
@@ -125,7 +125,7 @@ def sample_sr(
         ),
     )
     up_shape = (batch_size, 3, sr_y, sr_x)
-    up_samples = diffusion_up.ddim_sample_loop(
+    up_samples = diffusion_up.plms_sample_loop(
         model_up,
         up_shape,
         noise=th.randn(up_shape, device=device) * upsample_temp,

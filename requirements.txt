@@ -19,7 +19,7 @@ frozenlist==1.3.0
 fsspec==2022.1.0
 ftfy==6.0.3
 future==0.18.2
--e git+https://git@github.com/openai/glide-text2im.git@9cc8e563851bd38f5ddb3e305127192cb0f02f5c#egg=glide_text2im
+-e git+https://github.com/crowsonkb/glide-text2im.git#egg=glide-text2im
 google-auth==2.5.0
 google-auth-oauthlib==0.4.6
 grpcio==1.43.0
