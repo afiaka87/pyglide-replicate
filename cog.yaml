@@ -1,4 +1,4 @@
-image: "r8.im/afiaka87/laionide"
+image: "r8.im/afiaka87/laionide-v2"
 build:
   gpu: true
 

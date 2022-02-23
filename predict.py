@@ -61,16 +61,16 @@ class Predictor(cog.Predictor):
     @cog.input(
         "timestep_respacing",
         type=str,
-        default="27",
-        help="Number of timesteps to use for base model. Going above 150 has diminishing returns.",
-        options=["5", "10", "15", "20", "25", "27", "fast27", "30", "35", "40", "45", "50", "75", "100", "125", "150"],
+        default="40",
+        help="Number of timesteps to use for base model. Going above 50 has diminishing returns.",
+        options=["5", "10", "15", "20", "25", "27", "30", "35", "40", "45", "50", "75", "100", "125", "150"],
     )
     @cog.input(
         "sr_timestep_respacing",
         type=str,
         default="17",
-        help="Number of timesteps to use for base model. Going above 150 has diminishing returns.",
-        options=["5", "10", "15", "17", "19", "20", "21", "23", "25", "27", "fast27", "30", "35", "40", "45", "50", "75", "100", "125", "150"],
+        help="Number of timesteps to use for base model. Going above 40 has diminishing returns.",
+        options=["5", "10", "15", "17", "19", "20", "21", "23", "25", "27", "fast27", "30", "35", "40", "40"],
     )
     @cog.input(
         "seed",
