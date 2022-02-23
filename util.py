@@ -83,7 +83,7 @@ def sample(
         return th.cat([eps, rest], dim=1)
 
     full_batch_size = batch_size * 2
-    samples = eval_diffusion.p_sample_loop(
+    samples = eval_diffusion.plms_sample_loop(
         model_fn,
         (full_batch_size, 3, side_y, side_x),
         device=device,
@@ -123,7 +123,7 @@ def sample_sr(
         ),
     )
     up_shape = (batch_size, 3, sr_y, sr_x)
-    up_samples = diffusion_up.ddim_sample_loop(
+    up_samples = diffusion_up.plms_sample_loop(
         model_up,
         up_shape,
         noise=th.randn(up_shape, device=device) * upsample_temp,

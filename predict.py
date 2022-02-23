@@ -4,16 +4,12 @@ import util
 import pathlib
 
 import sys
-from glide_text2im.clip.model_creation import create_clip_model
-from glide_text2im.download import load_checkpoint
+sys.path.append("glide-text2im")
 
 class Predictor(cog.Predictor):
     def setup(self):
         """Load the model into memory to make running multiple predictions efficient"""
         # Initialize the model to cache it
-        self.clip_model = create_clip_model(device="cuda")
-        self.clip_model.image_encoder.load_state_dict(load_checkpoint('clip/image-enc', "cuda"))
-        self.clip_model.text_encoder.load_state_dict(load_checkpoint('clip/text-enc', "cuda"))
 
     @cog.input(
         "prompt",
@@ -45,9 +41,9 @@ class Predictor(cog.Predictor):
     )
     @cog.input(
         "upsample_stage",
-        default=False,
+        default=True,
         type=bool,
-        help="If true, uses both the base and upsample models. If false, only the (finetuned) base model is used. This is useful for testing the upsampler, which is not finetuned.",
+        help="Performs prompt-aware upsampling by 4x base resolution",
     )
     @cog.input(
         "guidance_scale",
@@ -65,28 +61,22 @@ class Predictor(cog.Predictor):
     @cog.input(
         "timestep_respacing",
         type=str,
-        default="100",
+        default="27",
         help="Number of timesteps to use for base model. Going above 150 has diminishing returns.",
         options=["5", "10", "15", "20", "25", "27", "fast27", "30", "35", "40", "45", "50", "75", "100", "125", "150"],
     )
     @cog.input(
         "sr_timestep_respacing",
         type=str,
-        default="100",
+        default="17",
         help="Number of timesteps to use for base model. Going above 150 has diminishing returns.",
-        options=["5", "10", "15", "20", "25", "27", "fast27", "30", "35", "40", "45", "50", "75", "100", "125", "150"],
+        options=["5", "10", "15", "17", "19", "20", "21", "23", "25", "27", "fast27", "30", "35", "40", "45", "50", "75", "100", "125", "150"],
     )
     @cog.input(
         "seed",
         type=int,
         default=0,
         help="Seed for reproducibility",
-    )
-    @cog.input(
-        "use_noisy_clip",
-        type=bool,
-        default=True,
-        help="If true, uses the noisy CLIP model. Only works with image size = (64, 64).",
     )
     def predict(
         self,
@@ -100,7 +90,6 @@ class Predictor(cog.Predictor):
         timestep_respacing,
         sr_timestep_respacing,
         seed,
-        use_noisy_clip,
     ):
         prompt.replace("nazi", "").replace("swastika", "") # shrug
         th.manual_seed(seed)
@@ -114,10 +103,6 @@ class Predictor(cog.Predictor):
         if upsample_stage:
             self.sr_model.to("cuda")
         with th.no_grad():
-            # Setup guidance function for CLIP model.
-            clip_cond_fn = None
-            if use_noisy_clip:
-                clip_cond_fn = self.clip_model.cond_fn([prompt] * 2 * batch_size, guidance_scale)
             print(f"Generating {side_x}x{side_y} samples with {timestep_respacing} timesteps using GLIDE-base-64px...")
             base_samples = util.sample(
                 self.base_model,
@@ -129,7 +114,7 @@ class Predictor(cog.Predictor):
                 batch_size=batch_size,
                 guidance_scale=guidance_scale,
                 device="cuda",
-                clip_cond_fn=clip_cond_fn
+                clip_cond_fn=None,
             )
             base_pil_images = util.pred_to_pil(base_samples)
             base_pil_images.save("/src/base_predictions.png")
